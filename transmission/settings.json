@@ -1,0 +1,22 @@
+{
+  "download-dir": "/downloads/completed",
+  "incomplete-dir": "/downloads/incomplete",
+  "incomplete-dir-enabled": true,
+  "watch-dir": "/downloads/watch",
+  "watch-dir-enabled": true,
+  "download-queue-enabled": true,
+  "download-queue-size": 2,
+  "seed-queue-enabled": true,
+  "seed-queue-size": 3,
+  "queue-stalled-enabled": false,
+  "peer-limit-global": 80,
+  "peer-limit-per-torrent": 30,
+  "cache-size-mb": 8,
+  "dht-enabled": true,
+  "pex-enabled": true,
+  "lpd-enabled": false,
+  "port-forwarding-enabled": false,
+  "rpc-enabled": true,
+  "rpc-bind-address": "0.0.0.0",
+  "rpc-port": 9091
+}

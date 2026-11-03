@@ -1,0 +1,22 @@
+# Local cold-start/guard test when /dev/net/tun is absent on the test host.
+# This does NOT test a live tunnel. Never use this override for NAS deployment.
+services:
+  gateway:
+    devices: !reset []
+    command: [/bin/sh, /test/gateway-delayed.sh]
+    volumes:
+      - ./tests/gateway-delayed.sh:/test/gateway-delayed.sh:ro
+      - ./tests/iptables-no-owner.sh:/usr/local/sbin/iptables:ro
+      - ./tests/iptables-no-owner.sh:/usr/local/sbin/iptables-legacy:ro
+  web:
+    ports: !override ["127.0.0.1:18080:8080"]
+    volumes:
+      - smoke-downloads:/downloads
+  transmission:
+    volumes:
+      - smoke-downloads:/downloads
+      - ./tests/iptables-no-owner.sh:/usr/local/sbin/iptables:ro
+      - ./tests/iptables-no-owner.sh:/usr/local/sbin/iptables-legacy:ro
+
+volumes:
+  smoke-downloads:

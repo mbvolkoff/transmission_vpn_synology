@@ -1,0 +1,147 @@
+# One DSM Project, one web entry point. VPN profiles, accounts and internal
+# credentials are stored in private Docker volumes, outside the source tree.
+services:
+  gateway:
+    image: transmission-vpn:local
+    build: .
+    command: [python3, -m, app.gateway]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${GATEWAY_MEMORY_LIMIT:-128m}
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
+      net.ipv6.conf.default.disable_ipv6: "1"
+      # New namespaces MUST NOT forward before the gateway installs its guard.
+      net.ipv4.ip_forward: "0"
+      net.ipv4.conf.all.accept_source_route: "0"
+      net.ipv4.conf.default.accept_source_route: "0"
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      - vpn-state:/vpn
+      - service-control:/control
+    networks:
+      control:
+        aliases: [vpn-control]
+      torrent:
+        aliases: [vpn-router]
+    # Docker retains internal service discovery but forwards external queries
+    # to these resolvers. A NAS/LAN DNS server may be unreachable after the
+    # gateway's full-tunnel route is installed.
+    dns:
+      - ${VPN_DNS_PRIMARY:-1.1.1.1}
+      - ${VPN_DNS_SECONDARY:-9.9.9.9}
+    healthcheck:
+      test: [CMD, python3, -m, app.health, "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  transmission:
+    image: transmission-vpn:local
+    pull_policy: never
+    command: [python3, -m, app.transmission]
+    restart: unless-stopped
+    stop_grace_period: 1m
+    mem_limit: ${TRANSMISSION_MEMORY_LIMIT:-192m}
+    networks: [torrent]
+    # Bootstrap routes/firewall before starting any daemon, then permanently
+    # drop NET_ADMIN from the supervisor's capability bounding set.
+    # Legacy iptables opens a raw socket. Both capabilities are removed from
+    # the supervisor's bounding set as soon as bootstrap completes.
+    cap_add: [NET_ADMIN, NET_RAW]
+    sysctls:
+      net.ipv6.conf.all.disable_ipv6: "1"
+      net.ipv6.conf.default.disable_ipv6: "1"
+      net.ipv4.ip_forward: "0"
+      net.ipv4.conf.all.accept_redirects: "0"
+      net.ipv4.conf.default.accept_redirects: "0"
+      net.ipv4.conf.all.secure_redirects: "0"
+      net.ipv4.conf.default.secure_redirects: "0"
+      net.ipv4.conf.all.accept_source_route: "0"
+      net.ipv4.conf.default.accept_source_route: "0"
+    tmpfs:
+      - /run/transmission-vpn:size=1m,mode=0700
+    healthcheck:
+      test: [CMD, python3, -m, app.health, transmission]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - transmission-state:/data
+      - service-control:/control:ro
+      - ${DOWNLOADS_DIR:-./downloads}:/downloads
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+  web:
+    image: transmission-vpn:local
+    pull_policy: never
+    command: [python3, -m, app.web]
+    restart: unless-stopped
+    mem_limit: ${WEB_MEMORY_LIMIT:-64m}
+    healthcheck:
+      test: [CMD, python3, -m, app.health, "http://127.0.0.1:8080/api/session"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+    volumes:
+      - web-state:/data
+      - service-control:/control:ro
+      - ${DOWNLOADS_DIR:-./downloads}:/downloads
+    ports:
+      - "${WEB_BIND_IP:-0.0.0.0}:${WEB_PORT:-8080}:8080/tcp"
+    networks: [control]
+    cap_drop: [NET_RAW, NET_ADMIN]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+networks:
+  control:
+  torrent:
+    # No host NAT for this bridge. The daemon's only installed next hop is the
+    # VPN router; its connected bridge route and Docker DNS access are removed.
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+volumes:
+  vpn-state:
+  web-state:
+  transmission-state:
+  service-control:

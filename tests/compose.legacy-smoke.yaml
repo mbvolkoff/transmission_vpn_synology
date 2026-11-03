@@ -1,0 +1,10 @@
+# Use only with the disposable tvpn-smoke project, after compose.smoke.yaml.
+# Force the nftables command to fail; the real legacy guard must still protect
+# the real torrent namespace. No production backend or health check is bypassed.
+services:
+  gateway:
+    volumes:
+      - ./tests/iptables-unavailable.sh:/usr/local/sbin/iptables:ro
+  transmission:
+    volumes:
+      - ./tests/iptables-unavailable.sh:/usr/local/sbin/iptables:ro

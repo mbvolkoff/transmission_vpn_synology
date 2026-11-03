@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Transmission · Private downloads</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <section id="auth-screen" class="auth-screen" hidden>
+    <div class="auth-card">
+      <div class="brand-mark" aria-hidden="true">↓</div>
+      <p class="eyebrow">TRANSMISSION / NAS</p>
+      <h1 id="auth-title">Welcome back.</h1>
+      <p id="auth-description" class="muted">Sign in to manage your private downloads.</p>
+      <form id="auth-form">
+        <div id="setup-code-field" hidden>
+          <label for="setup-code">One-time setup code</label>
+          <input id="setup-code" autocomplete="off" placeholder="Copy from the web container’s DSM log">
+          <p class="field-note">In DSM, open Container Manager → this project → web → Log.</p>
+        </div>
+        <label for="login-password">App password</label>
+        <input id="login-password" type="password" autocomplete="current-password" required>
+        <div id="confirm-field" hidden>
+          <label for="confirm-password">Confirm password</label>
+          <input id="confirm-password" type="password" autocomplete="new-password">
+        </div>
+        <p id="auth-error" class="inline-error" role="alert" hidden></p>
+        <button class="button primary full" id="auth-submit">Sign in</button>
+      </form>
+      <p class="auth-footnote">Your configuration and downloads stay on your NAS.</p>
+    </div>
+  </section>
+
+  <div id="app" class="app-shell" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Transmission home"><span class="brand-mark">↓</span><span>Transmission<small>PRIVATE DOWNLOADS</small></span></a>
+      <p class="nav-label">WORKSPACE</p>
+      <nav aria-label="Main navigation">
+        <button class="nav-button selected" id="nav-downloads"><span aria-hidden="true">↧</span> Downloads <span id="nav-count" class="nav-count">0</span></button>
+        <button class="nav-button" id="nav-settings"><span aria-hidden="true">◇</span> Connection & storage</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><span class="privacy-symbol" aria-hidden="true">◇</span><strong>Private by default</strong><p>Downloads wait for your protected connection.</p></div>
+        <button id="logout" class="logout">Sign out <span aria-hidden="true">↗</span></button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="page-header">
+        <div><p class="eyebrow">YOUR NAS, YOUR FILES</p><h1 id="page-title">Downloads</h1><p id="page-subtitle" class="muted">A little less waiting. Everything in one place.</p></div>
+        <div class="header-actions"><span id="connection-badge" class="badge neutral">Checking connection</span><button id="add-download" class="button primary" disabled><span aria-hidden="true">＋</span> Add download</button></div>
+      </header>
+
+      <section id="downloads-view">
+        <div class="stats-grid">
+          <article class="stat-card connection-stat"><div class="stat-top"><span>Connection</span><span class="stat-icon">◇</span></div><strong id="connection-title">Checking…</strong><span id="connection-detail" class="stat-detail">Getting your connection ready</span></article>
+          <article class="stat-card"><div class="stat-top"><span>Download speed</span><span class="stat-icon">↓</span></div><strong id="download-speed">0 <small>KB/s</small></strong><span class="stat-detail">Across your active downloads</span></article>
+          <article class="stat-card"><div class="stat-top"><span>Upload speed</span><span class="stat-icon">↑</span></div><strong id="upload-speed">0 <small>KB/s</small></strong><span class="stat-detail">Sharing with other peers</span></article>
+        </div>
+        <div id="setup-banner" class="notice" hidden><div><strong>Make yourself at home.</strong><p>Connect your VPN and choose a folder before your first download.</p></div><button id="go-setup" class="button secondary">Set up connection <span aria-hidden="true">→</span></button></div>
+        <section class="card downloads-card">
+          <div class="card-heading"><div><h2>Your downloads <span id="torrent-count" class="count">0</span></h2><p class="muted" id="destination-summary">Choose where your files will be saved.</p></div><div class="segmented" aria-label="Filter downloads"><button class="selected" data-filter="all">All</button><button data-filter="active">Active</button><button data-filter="complete">Completed</button></div></div>
+          <div id="torrent-empty" class="empty-state"><div class="empty-illustration" aria-hidden="true"><span>↓</span></div><h3>A clear space for your next download.</h3><p>Add a torrent file or a magnet link.<br>Your files will be saved directly to your NAS.</p><button id="empty-add" class="button secondary">Add your first download <span aria-hidden="true">＋</span></button></div>
+          <div id="torrent-list" class="torrent-list" aria-live="polite"></div>
+        </section>
+        <p class="page-footnote"><span class="small-dot"></span> VPN profiles are stored privately on this NAS.</p>
+      </section>
+
+      <section id="settings-view" hidden>
+        <div class="setup-intro"><span class="step-pill">SIMPLE SETUP</span><h2>One connection. A place for your files.</h2><p class="muted">Bring your VPN profile. We’ll take care of connecting your downloads.</p></div>
+        <form id="settings-form">
+          <div class="settings-grid">
+            <section class="card settings-card"><div class="section-title"><span class="step-number">1</span><div><h2>Choose your connection</h2><p class="muted">Use the profile from your VPN service.</p></div></div>
+              <fieldset class="protocol-options"><legend class="sr-only">VPN protocol</legend>
+                <label class="protocol-card"><input type="radio" name="protocol" value="openvpn" checked><span class="protocol-icon">◇</span><strong>OpenVPN</strong><small>.ovpn profile</small><span class="radio-dot"></span></label>
+                <label class="protocol-card"><input type="radio" name="protocol" value="xray"><span class="protocol-icon">⌁</span><strong>Xray</strong><small>Client JSON profile</small><span class="radio-dot"></span></label>
+              </fieldset>
+              <label class="dropzone" id="profile-zone" for="vpn-profile"><span class="upload-symbol" aria-hidden="true">↑</span><strong id="profile-label">Choose an OpenVPN profile</strong><span id="profile-hint">Click to browse or drop your .ovpn file here</span><input id="vpn-profile" type="file" accept=".ovpn" class="sr-only"></label>
+              <p id="saved-profile" class="field-note" hidden></p>
+              <div id="openvpn-fields"><div class="field-row"><div><label for="vpn-user">VPN username <span class="optional">if required</span></label><input id="vpn-user" autocomplete="off" placeholder="From your VPN service"></div><div><label for="vpn-password">VPN password <span class="optional">if required</span></label><input id="vpn-password" type="password" autocomplete="off" placeholder="VPN password"></div></div>
+              <details class="supporting-files"><summary>My profile has separate certificate or key files</summary><p class="field-note">Add the supporting files supplied with your profile.</p><input id="vpn-assets" type="file" multiple accept=".crt,.pem,.key,.cer,.p12,.txt"><p class="field-note">Inline certificates inside your .ovpn file need no extra upload.</p></details></div>
+              <p id="xray-note" class="field-note" hidden>Upload a client JSON with one proxy server. Desktop listeners and direct-routing rules are replaced so downloads use the VPN.</p>
+              <div class="private-hint"><span aria-hidden="true">◇</span> Your profile stays private. It is never included in the app image.</div>
+            </section>
+            <div class="settings-right"><section class="card settings-card"><div class="section-title"><span class="step-number">2</span><div><h2>A home for your downloads</h2><p class="muted">Pick a folder on your NAS.</p></div></div><div class="folder-selection"><span class="folder-icon" aria-hidden="true">▱</span><div><strong id="selected-folder-name">No folder selected</strong><span id="selected-folder-path">Choose from available storage</span></div></div><button id="browse-folders" type="button" class="button secondary full">Browse folders <span aria-hidden="true">→</span></button><p class="field-note">Only folders made available by your DSM administrator appear here. A new selection applies to future downloads.</p></section>
+            <section class="card settings-card connection-control"><div class="card-heading"><h2>Connection status</h2><span id="settings-status" class="badge neutral">Checking</span></div><p id="settings-status-description" class="muted">No connection has been configured yet.</p><button id="toggle-vpn" type="button" class="button secondary full" disabled>Connect</button></section></div>
+          </div>
+          <div class="settings-footer"><p id="settings-error" class="inline-error" role="alert" hidden></p><p class="muted">Downloads are protected while the connection changes.</p><button id="save-settings" class="button primary">Save & connect <span aria-hidden="true">→</span></button></div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="folder-dialog"><div class="dialog-heading"><div><p class="eyebrow">NAS STORAGE</p><h2>Choose a download folder</h2></div><button type="button" class="icon-button" data-close="folder-dialog" aria-label="Close folder picker">×</button></div><p class="muted">Browse the storage available to this app.</p><div id="folder-breadcrumbs" class="breadcrumbs"></div><div id="folder-entries" class="folder-entries"></div><form id="new-folder-form" class="new-folder-form"><input id="new-folder-name" aria-label="New folder name" placeholder="New folder name" maxlength="100"><button class="button secondary">Create folder</button></form><p id="folder-error" class="inline-error" role="alert" hidden></p><div class="dialog-footer"><button class="button subtle" data-close="folder-dialog">Cancel</button><button id="choose-folder" class="button primary">Use this folder</button></div></dialog>
+
+  <dialog id="add-dialog"><div class="dialog-heading"><div><p class="eyebrow">SOMETHING NEW</p><h2>Add a download</h2></div><button class="icon-button" data-close="add-dialog" aria-label="Close add download">×</button></div><div class="segmented add-tabs"><button class="selected" data-add-mode="file">Torrent file</button><button data-add-mode="magnet">Magnet link</button></div><form id="add-form"><div id="torrent-file-field"><label class="dropzone compact" for="torrent-files"><span class="upload-symbol">↑</span><strong id="torrent-file-label">Choose torrent files</strong><span>.torrent files, up to 2 MB each</span><input id="torrent-files" type="file" accept=".torrent" multiple class="sr-only"></label></div><div id="magnet-field" hidden><label for="magnet-link">Magnet link</label><textarea id="magnet-link" rows="4" placeholder="magnet:?xt=urn:btih:…"></textarea></div><p class="field-note" id="add-destination"></p><p id="add-error" class="inline-error" role="alert" hidden></p><div class="dialog-footer"><button type="button" class="button subtle" data-close="add-dialog">Cancel</button><button id="submit-download" class="button primary">Add download</button></div></form></dialog>
+</body>
+</html>
